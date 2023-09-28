@@ -20,6 +20,7 @@ import {
   ErrorPageModule,
   FreshOptions,
   Handler,
+  Handlers,
   InternalFreshOptions,
   Island,
   LayoutModule,
@@ -28,10 +29,13 @@ import {
   MiddlewareHandlerContext,
   MiddlewareModule,
   MiddlewareRoute,
+  PageComponent,
   Plugin,
   RenderFunction,
   RenderOptions,
   Route,
+  RouteAll,
+  RouteContext,
   RouteModule,
   RouterOptions,
   RouterState,
@@ -39,7 +43,11 @@ import {
   UnknownPage,
   UnknownPageModule,
 } from "./types.ts";
-import { DEFAULT_RENDER_FN, render as internalRender } from "./render.ts";
+import {
+  checkAsyncComponent,
+  DEFAULT_RENDER_FN,
+  render as internalRender,
+} from "./render.ts";
 import {
   ContentSecurityPolicy,
   ContentSecurityPolicyDirectives,
@@ -180,11 +188,6 @@ export async function getServerContext(opts: InternalFreshOptions) {
     if (
       !path.startsWith("/_") && !isLayout && !isMiddleware
     ) {
-      const { default: component, config } = module as RouteModule;
-      let pattern = pathToPattern(baseRoute);
-      if (config?.routeOverride) {
-        pattern = String(config.routeOverride);
-      }
       let { handler } = module as RouteModule;
       if (!handler && "handlers" in module) {
         throw new Error(
@@ -192,10 +195,50 @@ export async function getServerContext(opts: InternalFreshOptions) {
         );
       }
       handler ??= {};
+
+      const { default: maybeComponent, config } = module as RouteModule;
+      let component: PageComponent | undefined;
+      if (typeof maybeComponent === "function") {
+        component = maybeComponent;
+      } else if (
+        maybeComponent !== null && typeof maybeComponent === "object"
+      ) {
+        const routeConfig = maybeComponent as RouteAll;
+        component = routeConfig.component;
+        if (typeof handler !== "function") {
+          if (routeConfig.GET) {
+            handler.GET = routeConfig.GET;
+          }
+          if (routeConfig.HEAD) {
+            handler.HEAD = routeConfig.HEAD;
+          }
+          if (routeConfig.OPTIONS) {
+            handler.OPTIONS = routeConfig.OPTIONS;
+          }
+          if (routeConfig.POST) {
+            handler.POST = routeConfig.POST;
+          }
+          if (routeConfig.PATCH) {
+            handler.PATCH = routeConfig.PATCH;
+          }
+          if (routeConfig.PUT) {
+            handler.PUT = routeConfig.PUT;
+          }
+          if (routeConfig.DELETE) {
+            handler.DELETE = routeConfig.DELETE;
+          }
+        }
+      }
+
+      let pattern = pathToPattern(baseRoute);
+      if (config?.routeOverride) {
+        pattern = String(config.routeOverride);
+      }
+
       if (
         component && typeof handler === "object" && handler.GET === undefined
       ) {
-        handler.GET = (_req, { render }) => render();
+        handler.GET = ((_req, { render }) => render()) as Handler;
       }
       if (
         typeof handler === "object" && handler.GET !== undefined &&
@@ -780,7 +823,7 @@ export class ServerContext {
         ctx?: any,
         error?: unknown,
       ) => {
-        return async (data?: Data, options?: RenderOptions) => {
+        return async (data?: Data, options?: RenderOptions): Response => {
           if (route.component === undefined) {
             throw new Error("This page does not have a component to render.");
           }
@@ -848,7 +891,7 @@ export class ServerContext {
           methods: {},
         };
         for (const [method, handler] of Object.entries(route.handler)) {
-          routes[route.pattern].methods[method as router.KnownMethod] = (
+          routes[route.pattern].methods[method as keyof Handlers] = (
             req,
             ctx,
             params,

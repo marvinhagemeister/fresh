@@ -191,6 +191,22 @@ export interface HandlerContext<
 }
 
 // deno-lint-ignore no-explicit-any
+export interface RouteAll<T = any, S = Record<string, unknown>>
+  extends Handlers<T, S> {
+  component: PageComponent<PageProps>;
+}
+
+export type RenderHandler<
+  // deno-lint-ignore no-explicit-any
+  T = any,
+  S = Record<string, unknown>,
+  NotFoundData = unknown,
+> = (
+  req: Request,
+  ctx: HandlerContext<T, S, NotFoundData>,
+) => Response | ComponentChildren | Promise<Response | ComponentChildren>;
+
+// deno-lint-ignore no-explicit-any
 export type Handler<T = any, State = Record<string, unknown>> = (
   req: Request,
   ctx: HandlerContext<T, State>,
@@ -198,7 +214,13 @@ export type Handler<T = any, State = Record<string, unknown>> = (
 
 // deno-lint-ignore no-explicit-any
 export type Handlers<T = any, State = Record<string, unknown>> = {
-  [K in router.KnownMethod]?: Handler<T, State>;
+  OPTIONS?: Handler<T, State>;
+  HEAD?: Handler<T, State>;
+  GET?: Handler<T, State>;
+  POST?: RenderHandler<T, State>;
+  PUT?: RenderHandler<T, State>;
+  DELETE?: RenderHandler<T, State>;
+  PATCH?: RenderHandler<T, State>;
 };
 
 /**
@@ -207,7 +229,7 @@ export type Handlers<T = any, State = Record<string, unknown>> = {
 export type MultiHandler<T> = Handlers<T>;
 
 export interface RouteModule {
-  default?: PageComponent<PageProps>;
+  default?: PageComponent<PageProps> | Handlers;
   // deno-lint-ignore no-explicit-any
   handler?: Handler<any, any> | Handlers<any, any>;
   config?: RouteConfig;

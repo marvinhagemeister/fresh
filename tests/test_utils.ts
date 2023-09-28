@@ -231,6 +231,12 @@ export interface FakeServer {
   request(req: Request): Promise<Response>;
   getHtml(pathname: string): Promise<TestDocument>;
   get(pathname: string): Promise<Response>;
+  head(pathname: string): Promise<Response>;
+  post(pathname: string): Promise<Response>;
+  put(pathname: string): Promise<Response>;
+  delete(pathname: string): Promise<Response>;
+  patch(pathname: string): Promise<Response>;
+  options(pathname: string): Promise<Response>;
 }
 
 async function handleRequest(
@@ -278,6 +284,39 @@ export async function fakeServe(
     },
     get(pathname: string) {
       const req = new Request(`${origin}${pathname}`);
+      return handleRequest(handler, conn, req);
+    },
+    head(pathname: string) {
+      const req = new Request(`${origin}${pathname}`, { method: "HEAD" });
+      return handleRequest(handler, conn, req);
+    },
+    post(pathname: string, init: RequestInit = {}) {
+      const req = new Request(`${origin}${pathname}`, {
+        method: "POST",
+        ...init,
+      });
+      return handleRequest(handler, conn, req);
+    },
+    put(pathname: string, init: RequestInit = {}) {
+      const req = new Request(`${origin}${pathname}`, {
+        method: "PUT",
+        ...init,
+      });
+      return handleRequest(handler, conn, req);
+    },
+    delete(pathname: string) {
+      const req = new Request(`${origin}${pathname}`, { method: "DELETE" });
+      return handleRequest(handler, conn, req);
+    },
+    patch(pathname: string, init: RequestInit = {}) {
+      const req = new Request(`${origin}${pathname}`, {
+        method: "PATCH",
+        ...init,
+      });
+      return handleRequest(handler, conn, req);
+    },
+    options(pathname: string) {
+      const req = new Request(`${origin}${pathname}`, { method: "OPTIONS" });
       return handleRequest(handler, conn, req);
     },
   };
