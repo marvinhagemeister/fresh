@@ -38,7 +38,7 @@ jobs:
         uses: denoland/deployctl@v1
         with:
           project: "marvinhagem-fresh-89"
-          entrypoint: "www/_fresh/server.js"
-          root: ""
+          entrypoint: "_fresh/server.js"
+          root: "www"
           
           
