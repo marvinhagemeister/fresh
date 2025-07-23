@@ -1,9 +1,9 @@
 name: Deploy
 on:
   push:
-    branches: [main]
+    branches: island-builder
   pull_request:
-    branches: [main]
+    branches: island-builder
 
 jobs:
   deploy:
@@ -21,16 +21,24 @@ jobs:
       - name: Install Deno
         uses: denoland/setup-deno@v2
         with:
-          cache: true
-          deno-version: rc
+          deno-version: v2.x
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install step
+        run: "deno install"
 
       - name: Build step
-        working-directory: ./www
-        run: "deno task build"
+        run: "deno task build-www"
 
       - name: Upload to Deno Deploy
         uses: denoland/deployctl@v1
         with:
-          project: "fresh"
-          entrypoint: "./www/main.ts"
-          root: "."
+          project: "marvinhagem-fresh-89"
+          entrypoint: "_fresh/server.js"
+          root: "www"
+          
+          
